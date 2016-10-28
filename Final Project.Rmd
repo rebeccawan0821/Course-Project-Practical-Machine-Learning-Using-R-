@@ -1,0 +1,88 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Rebecca Wan"
+date: "October 28, 2016"
+output: html_document
+---
+
+## Step1: Set up library and read raw datasets
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(randomForest)
+pml.training <- read.csv("C:/Users/siqiwan/Desktop/Machine Learning/pml-training.csv")
+pml.testing <- read.csv("C:/Users/siqiwan/Desktop/Machine Learning/pml-testing.csv")
+
+```
+
+## Step2: Count raw data missing values
+```{r}
+Missing=function(x)
+{
+  a=as.vector(colnames(x))
+  b=seq(from=1,to=ncol(x),by=1)
+  result=data.frame()
+  for (i in b)
+  {
+    c=sum(is.na(x[,i]))
+    result=rbind(result,c)
+  }
+  output=data.frame(a,result)
+  colnames(output)=c("Column Name","No. of Missing Values")
+  output
+}
+Missing(pml.training)
+Missing(pml.testing)
+```
+The result shows there are some columns have more than 90% missing values, in this case, I decided to delete those columns.
+
+```{r}
+pml.training<- pml.training[,-c(1,2,5,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,50,51,52,53,54,55,56,57,58,59,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,103,104,105,106,107,108,109,110,111,112,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,141,142,143,144,145,146,147,148,149,150)]
+pml.testing<- pml.testing[,-c(1,2,5,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,50,51,52,53,54,55,56,57,58,59,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,103,104,105,106,107,108,109,110,111,112,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,141,142,143,144,145,146,147,148,149,150,160)]
+```
+
+
+## Step3: Data Slicing
+Separate the pml.training dataset into 60% train and 40%test.
+```{r}
+inTrain <- createDataPartition(y=pml.training$classe,p=0.6,list=FALSE)
+training <- pml.training[inTrain,]
+testing <- pml.training[-inTrain,]
+dim(training)
+dim(testing)
+```
+
+## Step4: Random Forest Model
+Random forest model has high accuracy in most case, so I choose random forest model first.
+```{r}
+modfit2 <- randomForest(classe~ .,data=training,importance=TRUE)
+modfit2
+```
+
+Prediction on testing dataset and compare the prediction and actual values.
+```{r}
+predict2 <- predict(modfit2,testing)
+table(predict2,testing$classe)
+```
+Result shows random forest model is very accurate on testing set.
+
+## Step5: Prediction on pml.testing
+First matching the predictor levels to avoid errors in prediction.
+```{r}
+common <- intersect(names(training), names(pml.testing)) 
+for (p in common) { 
+  if (class(training[[p]]) == "factor") { 
+    levels(pml.testing[[p]]) <- levels(training[[p]]) 
+  } 
+}
+```
+
+Final prediction on pml.testing
+```{r}
+predict <- predict(modfit2,pml.testing)
+predict
+```
+
+
